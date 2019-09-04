@@ -7,10 +7,10 @@ if [ "$#" -ne 3 ]; then
     exit 1
 fi
 
-GUID=$1
-REPO=$2
-CLUSTER=$3
-echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cluster ${CLUSTER}"
+GUID=9c94
+REPO=https://github.com/p-ebot/advdev-homework.git
+CLUSTER=https://master.na311.openshift.opentlc.com
+echo "Setting up Jenkins in project 9c94-jenkins from Git Repo https://github.com/p-ebot/advdev-homework.git for Cluster https://master.na311.openshift.opentlc.com"
 
 # Set up Jenkins with sufficient resources
 # TBD
@@ -24,7 +24,7 @@ echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cl
 # Make sure that Jenkins is fully up and running before proceeding!
 while : ; do
   echo "Checking if Jenkins is Ready..."
-  AVAILABLE_REPLICAS=$(oc get dc jenkins -n ${GUID}-jenkins -o=jsonpath='{.status.availableReplicas}')
+  AVAILABLE_REPLICAS=$(oc get dc jenkins -n 9c94-jenkins -o=jsonpath='{.status.availableReplicas}')
   if [[ "$AVAILABLE_REPLICAS" == "1" ]]; then
     echo "...Yes. Jenkins is ready."
     break
