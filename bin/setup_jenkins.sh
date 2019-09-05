@@ -23,7 +23,23 @@ oc new-build  -D $'FROM docker.io/openshift/jenkins-agent-maven-35-centos7:v3.11
       USER 1001' --name=jenkins-agent-appdev
 
 # Create pipeline build config pointing to the ${REPO} with contextDir `openshift-tasks`
-# TBD
+echo "apiVersion: v1
+items:
+- kind: "BuildConfig"
+  apiVersion: "v1"
+  metadata:
+    name: "tasks-pipeline"
+  spec:
+    source:
+      type: "Git"
+      git:
+        uri: "http://gogs.GUID-gogs.svc.cluster.local:3000/CICDLabs/openshift-tasks-private"
+    strategy:
+      type: "JenkinsPipeline"
+      jenkinsPipelineStrategy:
+        jenkinsfilePath: Jenkinsfile
+kind: List
+metadata: []" | oc create -f - -n 9c94-jenkins
 
 # Make sure that Jenkins is fully up and running before proceeding!
 while : ; do
