@@ -37,7 +37,7 @@ items:
     strategy:
       type: "JenkinsPipeline"
       jenkinsPipelineStrategy:
-        jenkinsfilePath: Jenkinsfile/penshift-tasks/Jenkinsfile
+        jenkinsfilePath: openshift-tasks/Jenkinsfile
 kind: List
 metadata: []" | oc create -f - -n 9c94-jenkins
 
