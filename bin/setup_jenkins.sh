@@ -33,11 +33,11 @@ items:
     source:
       type: "Git"
       git:
-        uri: "http://gogs.GUID-gogs.svc.cluster.local:3000/CICDLabs/openshift-tasks-private"
+        uri: "https://github.com/p-ebot/advdev-homework.git"
     strategy:
       type: "JenkinsPipeline"
       jenkinsPipelineStrategy:
-        jenkinsfilePath: Jenkinsfile
+        jenkinsfilePath: Jenkinsfile/penshift-tasks/Jenkinsfile
 kind: List
 metadata: []" | oc create -f - -n 9c94-jenkins
 
