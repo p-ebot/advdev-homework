@@ -134,7 +134,7 @@ podTemplate(
         // TBD: Copy image to Nexus container registry
 
         // TBD: Tag the built image with the production tag.
-    
+
 
       // Blue/Green Deployment into Production
       // -------------------------------------
@@ -152,9 +152,9 @@ podTemplate(
         echo "Switching Production application to ${destApp}."
         // TBD: Execute switch
       }
-    }
-  }
-}
+    
+
+
 
 // Convenience Functions to read version from the pom.xml
 // Do not change anything below this line.
