@@ -110,7 +110,7 @@ podTemplate(
         // TBD: Deploy to development Project
         //      Set Image, Set VERSION
         //      Make sure the application is running and ready before proceeding
-      }
+    
 
       // Copy Image to Nexus container registry
       stage('Copy Image to Nexus container registry') {
