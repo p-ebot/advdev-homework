@@ -69,13 +69,44 @@ podTemplate(
       stage('Build and Tag OpenShift Image') {
         echo "Building OpenShift container image tasks:${devTag}"
 
+        script {
+              openshift.withCluster() {
+                openshift.withProject("${devProject}") {
+                  openshift.selector("bc", "tasks").startBuild("--from-file=./target/openshift-tasks.war", "--wait=true")
+                  openshift.tag("tasks:latest", "tasks:${devTag}")
+        }
+      }
+    }
+  }
+}
         // TBD: Build Image, tag Image
       }
 
       // Deploy the built image to the Development Environment.
       stage('Deploy to Dev') {
         echo "Deploying container image to Development Project"
-
+        script {
+              // Update the Image on the Development Deployment Config
+              openshift.withCluster() {
+                openshift.withProject("${devProject}") {
+                  // OpenShift 4
+                  openshift.set("image", "dc/tasks", "tasks=image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${devTag}")
+                  openshift.selector('configmap', 'tasks-config').delete()
+                  def configmap = openshift.create('configmap', 'tasks-config', '--from-file=./configuration/application-users.properties', '--from-file=./configuration/application-roles.properties' )
+                  openshift.selector("dc", "tasks").rollout().latest();
+                  def dc = openshift.selector("dc", "tasks").object()
+                  def dc_version = dc.status.latestVersion
+                  def rc = openshift.selector("rc", "tasks-${dc_version}").object()
+                  echo "Waiting for ReplicationController tasks-${dc_version} to be ready"
+          while (rc.spec.replicas != rc.status.readyReplicas) {
+            sleep 5
+            rc = openshift.selector("rc", "tasks-${dc_version}").object()
+          }
+        }
+      }
+    }
+  }
+}
         // TBD: Deploy to development Project
         //      Set Image, Set VERSION
         //      Make sure the application is running and ready before proceeding
