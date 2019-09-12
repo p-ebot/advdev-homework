@@ -110,7 +110,7 @@ podTemplate(
         // TBD: Deploy to development Project
         //      Set Image, Set VERSION
         //      Make sure the application is running and ready before proceeding
-    
+
 
       // Copy Image to Nexus container registry
       stage('Copy Image to Nexus container registry') {
@@ -130,11 +130,11 @@ podTemplate(
               }
             }
           }
-        }
+
         // TBD: Copy image to Nexus container registry
 
         // TBD: Tag the built image with the production tag.
-      }
+    
 
       // Blue/Green Deployment into Production
       // -------------------------------------
