@@ -101,8 +101,8 @@ podTemplate(
           while (rc.spec.replicas != rc.status.readyReplicas) {
             sleep 5
             rc = openshift.selector("rc", "tasks-${dc_version}").object()
-           }
-         }
-       }
-     }
-   }
+        }
+      }
+    }
+  }
+}
