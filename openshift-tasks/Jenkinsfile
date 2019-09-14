@@ -101,62 +101,10 @@ podTemplate(
           while (rc.spec.replicas != rc.status.readyReplicas) {
             sleep 5
             rc = openshift.selector("rc", "tasks-${dc_version}").object()
-          }
-        }
-      }
-    }
-  }
-        // TBD: Deploy to development Project
-        //      Set Image, Set VERSION
-        //      Make sure the application is running and ready before proceeding
+           }
+         }
+       }
+     }
+   }
 
-
-      // Copy Image to Nexus container registry
-      stage('Copy Image to Nexus container registry') {
-        echo "Copy image to Nexus container registry"
-        script {
-              // OpenShift 4
-              sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin docker://image-registry.openshift-image-registry.svc.cluster.local:5000/${devProject}/tasks:${devTag} docker://nexus3-registry-gpte-hw-cicd.apps.na311.openshift.opentlc.com:${devTag}"
-
-              // OpenShift 3
-              // sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${devProject}/tasks:${devTag} docker://nexus3-registry.${prefix}-nexus.svc.cluster.local:5000/tasks:${devTag}"
-
-              // Tag the built image with the production tag.
-              openshift.withCluster() {
-                openshift.withProject("${prodProject}") {
-                  openshift.tag("${devProject}/tasks:${devTag}", "${devProject}/tasks:${prodTag}")
-                }
-              }
-            }
-          }
-
-        // TBD: Copy image to Nexus container registry
-
-        // TBD: Tag the built image with the production tag.
-
-
-      // Blue/Green Deployment into Production
-      // -------------------------------------
-      def destApp   = "tasks-green"
-      def activeApp = ""
-
-      stage('Blue/Green Production Deployment') {
-        // TBD: Determine which application is active
-        //      Set Image, Set VERSION
-        //      Deploy into the other application
-        //      Make sure the application is running and ready before proceeding
-      }
-
-      stage('Switch over to new Version') {
-        echo "Switching Production application to ${destApp}."
-        // TBD: Execute switch
-      }
-
-
-  // Convenience Functions to read version from the pom.xml
-  // Do not change anything below this line.
-  // --------------------------------------------------------
-  def getVersionFromPom(pom) {
-    def matcher = readFile(pom) =~ '<version>(.+)</version>'
-    matcher ? matcher[0][1] : null
-  }
+      
