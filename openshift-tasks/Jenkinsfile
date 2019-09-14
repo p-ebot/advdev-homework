@@ -66,20 +66,20 @@ podTemplate(
       }
 
       // Build the OpenShift Image in OpenShift and tag it.
-      stage('Build and Tag OpenShift Image') {
+    stage('Build and Tag OpenShift Image') {
         echo "Building OpenShift container image tasks:${devTag}"
 
           // TBD: Build Image, tag Image
 
         script {
-              openshift.withCluster() {
-                openshift.withProject("${devProject}") {
-                  openshift.selector("bc", "tasks").startBuild("--from-file=.org/jboss/quickstarts/eap/tasks/93.0/tasks-93.0.war", "--wait=true")
-                  openshift.tag("tasks:latest", "tasks:${devTag}")
+          openshift.withCluster() {
+            openshift.withProject("${devProject}") {
+              openshift.selector("bc", "tasks").startBuild("--from-file=.org/jboss/quickstarts/eap/tasks/93.0/tasks-93.0.war", "--wait=true")
+              openshift.tag("tasks:latest", "tasks:${devTag}")
+          }
         }
       }
     }
-  }
         // TBD: Build Image, tag Image
 
       // Deploy the built image to the Development Environment.
@@ -106,7 +106,6 @@ podTemplate(
       }
     }
   }
-}
         // TBD: Deploy to development Project
         //      Set Image, Set VERSION
         //      Make sure the application is running and ready before proceeding
@@ -160,4 +159,4 @@ podTemplate(
   def getVersionFromPom(pom) {
     def matcher = readFile(pom) =~ '<version>(.+)</version>'
     matcher ? matcher[0][1] : null
-  } 
+  }
