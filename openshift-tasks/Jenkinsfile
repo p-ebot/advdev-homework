@@ -72,7 +72,7 @@ podTemplate(
         script {
               openshift.withCluster() {
                 openshift.withProject("${devProject}") {
-                  openshift.selector("bc", "tasks").startBuild("--from-file=./target/openshift-tasks.war", "--wait=true")
+                  openshift.selector("bc", "tasks").startBuild("--from-file=org/jboss/quickstarts/eap/tasks/1.0-0/tasks-1.0-0.war", "--wait=true")
                   openshift.tag("tasks:latest", "tasks:${devTag}")
         }
       }
