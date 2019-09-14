@@ -69,7 +69,7 @@ podTemplate(
       stage('Build and Tag OpenShift Image') {
         echo "Building OpenShift container image tasks:${devTag}"
 
-        openshiftTag alias: 'false', apiURL: 'OPENTLC OpenShift 3.11 Shared Access', authToken: 'Lofombo@80', destStream: '', destTag: '', destinationAuthToken: '', destinationNamespace: '', namespace: '9c94-jenkins', srcStream: '', srcTag: 'peter.ebot-axcelinno.io', verbose: 'false'
+        openshiftTag alias: 'true', apiURL: 'https://master.na311.openshift.opentlc.com', authToken: 'Lofombo@80', destStream: '', destTag: '', destinationAuthToken: '', destinationNamespace: '', namespace: '9c94-jenkins', srcStream: '', srcTag: 'peter.ebot-axcelinno.io', verbose: 'false'
         }
 
         // TBD: Build Image, tag Image
