@@ -83,7 +83,7 @@ podTemplate(
         // TBD: Build Image, tag Image
 
       // Deploy the built image to the Development Environment.
-      stage('Deploy to Dev') {
+    stage('Deploy to Dev') {
         echo "Deploying container image to Development Project"
         script {
               // Update the Image on the Development Deployment Config
@@ -106,5 +106,3 @@ podTemplate(
        }
      }
    }
-
-      
