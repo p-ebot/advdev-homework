@@ -38,7 +38,7 @@ podTemplate(
       def prodTag = "${version}"
       def devProject = "9c94-tasks-dev"
       def prodProject = "9c94-tasks-prod"
-      def tasks = }jenkins-agent-appdev"
+      def tasks = "jenkins-agent-appdev"
 
 
       // Using Maven build the war file
