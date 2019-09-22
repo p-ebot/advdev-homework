@@ -77,13 +77,15 @@ podTemplate(
         script {
               openshift.withCluster() {
                 openshift.withProject("9c94-jenkins") {
-                  openshift.selector("bc", "task").startBuild("--from-file=http://nexus3.gpte-hw-cicd.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/1.0-0/tasks-1.0-0.war", "--wait=true")
+                  openshift.selector("bc", "tasks").startBuild("--from-file=http://nexus3.gpte-hw-cicd.svc.cluster.local:8081/repository/releases/org/jboss/quickstarts/eap/tasks/maven-metadata.xml", "--wait=true")
                   openshift.tag("tasks:latest", "tasks:${devTag}")
         }
       }
     }
   }
+}
         // TBD: Build Image, tag Image
+      }
 
       // Deploy the built image to the Development Environment.
       stage('Deploy to Dev') {
@@ -93,7 +95,7 @@ podTemplate(
               openshift.withCluster() {
                 openshift.withProject("${devProject}") {
                   // OpenShift 4
-                  openshift.set("image", "dc/tasks", "tasks=image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${devTag}")
+                  openshift.set("image", "dc/tasks", "tasks=https://nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000/${devProject}/tasks:${devTag}")
                   openshift.selector('configmap', 'tasks-config').delete()
                   def configmap = openshift.create('configmap', 'tasks-config', '--from-file=./configuration/application-users.properties', '--from-file=./configuration/application-roles.properties' )
                   openshift.selector("dc", "tasks").rollout().latest();
@@ -109,6 +111,7 @@ podTemplate(
       }
     }
   }
+}
         // TBD: Deploy to development Project
         //      Set Image, Set VERSION
         //      Make sure the application is running and ready before proceeding
