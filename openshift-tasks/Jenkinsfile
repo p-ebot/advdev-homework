@@ -38,7 +38,7 @@ podTemplate(
       def prodTag = "${version}"
       def devProject = "9c94-tasks-dev"
       def prodProject = "9c94-tasks-prod"
-
+      def tasks = "jenkins-agent-appdev"
 
 
       // Using Maven build the war file
@@ -83,9 +83,9 @@ podTemplate(
       }
     }
   }
-
+}
         // TBD: Build Image, tag Image
-      
+      }
 
       // Deploy the built image to the Development Environment.
       stage('Deploy to Dev') {
