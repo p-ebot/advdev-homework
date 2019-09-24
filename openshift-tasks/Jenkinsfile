@@ -15,7 +15,7 @@ podTemplate(
   ]
 ) {
 //* add the URL as variable so you only have to define them once
-  def nexusSvcRoute = "http://nexus3.gpte-hw-cicd.svc.cluster.local:8081"\
+  def nexusSvcRoute = "http://nexus3.gpte-hw-cicd.svc.cluster.local:8081"
   def nexusPublicRoute = "http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com"
 
   def nexusContainerRegistrySvcRoute = "https://nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000"
