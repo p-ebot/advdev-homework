@@ -14,6 +14,16 @@ podTemplate(
     )
   ]
 ) {
+//* add the URL as variable so you only have to define them once
+  def nexusSvcRoute = "http://nexus3.gpte-hw-cicd.svc.cluster.local:8081"\
+  def nexusPublicRoute = "http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com"
+
+  def nexusContainerRegistrySvcRoute = "https://nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000"
+  def nexusContainerRegistryPublicRoute = "https://nexus3-registry-gpte-hw-cicd.apps.na311.openshift.opentlc.com"
+  def nexusContainerRegistryDockerRoute = "docker://nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000"
+
+  def sonarQubeSvcRoute = "sonarqube.gpte-hw-cicd.svc.cluster.local:9000"
+  def sonarQubePublicRoute = "http://sonarqube-gpte-hw-cicd.apps.na311.openshift.opentlc.com"
   node('skopeo-pod') {
     // Define Maven Command to point to the correct
     // settings for our Nexus installation
@@ -33,13 +43,15 @@ podTemplate(
       def version = getVersionFromPom("pom.xml")
 
       // TBD Set the tag for the development image: version + build number
+//*   Tag is set wrong. Will will not evaluate the current build number
+//*      devTag  = "${version}-" + currentBuild.number
       def devTag  = "${version}-${currentBuild.number}"
       // Set the tag for the production image: version
+//*      prodTag = "${version}"
+//*   Need to define with def not like Linux syntax
       def prodTag = "${version}"
       def devProject = "9c94-tasks-dev"
       def prodProject = "9c94-tasks-prod"
-
-
 
       // Using Maven build the war file
       // Do not run tests in this step
@@ -59,15 +71,15 @@ podTemplate(
       // Using Maven to call SonarQube for Code Analysis
       stage('Code Analysis') {
         echo "Running Code Analysis"
-         sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube-gpte-hw-cicd.apps.na311.openshift.opentlc.com -Dsonar.projectName=9c94-jenkins-tasks-pipeline -Dsonar.projectVersion=${devTag}"
-        // http://sonarqube-gpte-hw-cicd.apps.na311.openshift.opentlc.com/projects
+           sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube-gpte-hw-cicd.apps.na311.openshift.opentlc.com/ -Dsonar.projectName=9c94-jenkins-tasks-pipeline -Dsonar.projectVersion=${devTag}"
         // TBD: Execute Sonarqube Tests
       }
 
       // Publish the built war file to Nexus
       stage('Publish to Nexus') {
         echo "Publish to Nexus"
-        sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://nexus3.gpte-hw-cicd.svc.cluster.local:8081/repository/releases"
+//*        sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com/repository/releases/"
+        sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::${nexusSvcRoute}/repository/releases"
       }
 
       // Build the OpenShift Image in OpenShift and tag it.
@@ -76,8 +88,9 @@ podTemplate(
 
         script {
               openshift.withCluster() {
-                openshift.withProject("devProject") {
-                  openshift.selector("bc", "tasks").startBuild("--from-file=./target/openshift-tasks.war", "--wait=true")
+                openshift.withProject("9c94-jenkins") {
+//*                  openshift.selector("bc", "tasks").startBuild("--from-file=http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com/repository/releases/org/jboss/quickstarts/eap/tasks/1.0/tasks-1.0.war ", "--wait=true")
+                  openshift.selector("bc", "tasks").startBuild("--from-file=${nexusSvcRoute}/repository/releases/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war ", "--wait=true")
                   openshift.tag("tasks:latest", "tasks:${devTag}")
         }
       }
@@ -86,6 +99,7 @@ podTemplate(
 }
         // TBD: Build Image, tag Image
       }
+
       // Deploy the built image to the Development Environment.
       stage('Deploy to Dev') {
         echo "Deploying container image to Development Project"
@@ -94,7 +108,7 @@ podTemplate(
               openshift.withCluster() {
                 openshift.withProject("${devProject}") {
                   // OpenShift 4
-                  openshift.set("image", "dc/tasks", "tasks=https://nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000/${devProject}/tasks:${devTag}")
+                  openshift.set("image", "dc/tasks", "tasks=image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${devTag}")
                   openshift.selector('configmap', 'tasks-config').delete()
                   def configmap = openshift.create('configmap', 'tasks-config', '--from-file=./configuration/application-users.properties', '--from-file=./configuration/application-roles.properties' )
                   openshift.selector("dc", "tasks").rollout().latest();
