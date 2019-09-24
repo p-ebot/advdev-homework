@@ -18,7 +18,7 @@ podTemplate(
     // Define Maven Command to point to the correct
     // settings for our Nexus installation
     def mvnCmd = "mvn -s ../nexus_settings.xml"
-
+    }
     // Checkout Source Code.
     stage('Checkout Source') {
       checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '6ff03b8d-8a9a-42d4-afbf-1bf1e10d5e9a', url: 'https://github.com/p-ebot/advdev-homework.git']]])
@@ -78,41 +78,15 @@ podTemplate(
          script {
               openshift.withCluster() {
                 openshift.withProject("9c94-jenkins") {
-                  openshift.selector("bc", "tasks").startBuild("--from-file=http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com/repository/releases/org/jboss/quickstarts/eap/tasks/1.0-0/tasks-1.0-0.war", "--wait=true")
+                  openshift.selector("bc", "tasks").startBuild("--from-file=/target/openshift-tasks.war", "--wait=true")
                   openshift.tag("tasks:latest", "tasks:${devTag}")
-          // TBD: Build Image, tag Image
-        }
-      }
-    }
-  }
-}
-      
-
-      // Deploy the built image to the Development Environment.
-      stage('Deploy to Dev') {
-        echo "Deploying container image to Development Project"
-        script {
-              // Update the Image on the Development Deployment Config
-              openshift.withCluster() {
-                openshift.withProject("${devProject}") {
-                  // OpenShift 4
-                  openshift.set("image", "dc/tasks", "tasks=https://nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000/${devProject}/tasks:${devTag}")
-                  openshift.selector('configmap', 'tasks-config').delete()
-                  def configmap = openshift.create('configmap', 'tasks-config', '--from-file=./configuration/application-users.properties', '--from-file=./configuration/application-roles.properties' )
-                  openshift.selector("dc", "tasks").rollout().latest();
-                  def dc = openshift.selector("dc", "tasks").object()
-                  def dc_version = dc.status.latestVersion
-                  def rc = openshift.selector("rc", "tasks-${dc_version}").object()
-                  echo "Waiting for ReplicationController tasks-${dc_version} to be ready"
-          while (rc.spec.replicas != rc.status.readyReplicas) {
-            sleep 5
-            rc = openshift.selector("rc", "tasks-${dc_version}").object()
+             // TBD: Build Image, tag Image
           }
         }
       }
     }
   }
-}
+
         // TBD: Deploy to development Project
         //      Set Image, Set VERSION
         //      Make sure the application is running and ready before proceeding
