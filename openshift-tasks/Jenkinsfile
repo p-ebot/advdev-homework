@@ -72,20 +72,22 @@ podTemplate(
 
       // Build the OpenShift Image in OpenShift and tag it.
       stage('Build and Tag OpenShift Image') {
-        echo "Building OpenShift container image tasks:${devTag}"
+        step {
+          echo "Building OpenShift container image tasks:${devTag}"
 
-        script {
+         script {
               openshift.withCluster() {
-                openshift.withProject("devProject") {
+                openshift.withProject("9c94-jenkins") {
                   openshift.selector("bc", "tasks").startBuild("--from-file=http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com/repository/releases/org/jboss/quickstarts/eap/tasks/1.0-0/tasks-1.0-0.war", "--wait=true")
                   openshift.tag("tasks:latest", "tasks:${devTag}")
+          // TBD: Build Image, tag Image
         }
       }
     }
   }
 }
-        // TBD: Build Image, tag Image
-      }
+      
+
       // Deploy the built image to the Development Environment.
       stage('Deploy to Dev') {
         echo "Deploying container image to Development Project"
