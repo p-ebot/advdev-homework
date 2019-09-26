@@ -28,7 +28,9 @@ podTemplate(
     // Define Maven Command to point to the correct
     // settings for our Nexus installation
     def mvnCmd = "mvn -s ../nexus_settings.xml"
-oc
+
+    // Checkout Source Code.
+    stage('Checkout Source') {
       checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '6ff03b8d-8a9a-42d4-afbf-1bf1e10d5e9a', url: 'https://github.com/p-ebot/advdev-homework.git']]])
     }
 
