@@ -91,8 +91,8 @@ podTemplate(
                 openshift.withProject("9c94-jenkins") {
                   sh "curl -o 9c94-nexus.war http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com/org/jboss/quickstarts/eap/tasks/1.0-0/tasks-1.0-0.war"
 //*                  openshift.selector("bc", "tasks").startBuild("--from-file=http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com/repository/releases/org/jboss/quickstarts/eap/tasks/1.0/tasks-1.0.war ", "--wait=true")
-                  openshift.selector("bc", "tasks").startBuild("--from-file=9c94-nexus.war ", "--wait=true")
-                  openshift.tag("tasks:latest", "tasks:${devTag}")
+                  openshift.selector("bc", "jenkins-agent-appdev").startBuild("--from-file=9c94-nexus.war ", "--wait=true")
+                  openshift.tag("jenkins-agent-appdev:latest", "jenkins-agent-appdev:${devTag}")
         }
       }
     }
