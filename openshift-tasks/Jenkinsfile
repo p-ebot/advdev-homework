@@ -109,7 +109,7 @@ podTemplate(
               openshift.withCluster() {
                 openshift.withProject("${devProject}") {
                   // OpenShift 4
-                  openshift.set("image", "dc/tasks", "tasks=image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${devTag}")
+                  openshift.set("image", "dc/tasks", "tasks=idocker-registry.default.svc:5000/9c94-tasks-dev/tasks")
                   openshift.selector('configmap', 'tasks-config').delete()
                   def configmap = openshift.create('configmap', 'tasks-config', '--from-file=./configuration/application-users.properties', '--from-file=./configuration/application-roles.properties' )
                   openshift.selector("dc", "tasks").rollout().latest();
