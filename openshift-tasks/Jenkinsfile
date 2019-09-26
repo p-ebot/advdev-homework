@@ -107,7 +107,7 @@ podTemplate(
         script {
               // Update the Image on the Development Deployment Config
               openshift.withCluster() {
-                openshift.withProject("${devProject}") {
+                openshift.withProject("9c94-tasks-dev") {
                   // OpenShift 4
                   openshift.set("image", "dc/tasks", "tasks=idocker-registry.default.svc:5000/9c94-tasks-dev/tasks")
                   openshift.selector('configmap', 'tasks-config').delete()
