@@ -137,7 +137,7 @@ podTemplate(
               // Tag the built image with the production tag.
               openshift.withCluster() {
                 openshift.withProject("${prodProject}") {
-                  openshift.tag("${devProject}/tasks:${devTag}", "${devProject}/tasks:${prodTag}")
+                  openshift.tag("9c94-tasks-dev/tasks:${devTag}", "9c94-tasks-dev/tasks:${prodTag}")
                 }
               }
             }
