@@ -45,11 +45,11 @@ podTemplate(
       // TBD Set the tag for the development image: version + build number
 //*   Tag is set wrong. Will will not evaluate the current build number
 //*      devTag  = "${version}-" + currentBuild.number
-      def devTag  = "0.0-0"
+      def devTag  = "${version} + currentBuild.number"
       // Set the tag for the production image: version
 //*      prodTag = "${version}"
 //*   Need to define with def not like Linux syntax
-      def prodTag = "0.0"
+      def prodTag = "${version}"
       def devProject = "9c94-tasks-dev"
       def prodProject = "9c94-tasks-prod"
 
@@ -129,7 +129,7 @@ podTemplate(
         echo "Copy image to Nexus container registry"
         script {
               // OpenShift
-              sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin docker://nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000/9c94-tasks-dev docker:/nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000/9c94-tasks-dev"
+              sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin docker://nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000/9c94-tasks-dev docker:/nexus3-registry.gpte-hw-cicd.svc.cluster.local:5000/9c94-tasks-dev/tasks:${devTag}"
 
               // OpenShift 3
               // sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${devProject}/tasks:${devTag} docker://nexus3-registry.${prefix}-nexus.svc.cluster.local:5000/tasks:${devTag}"
