@@ -45,7 +45,7 @@ podTemplate(
       // TBD Set the tag for the development image: version + build number
 //*   Tag is set wrong. Will will not evaluate the current build number
 //*      devTag  = "${version}-" + currentBuild.number
-      def devTag  = "${version} + currentBuild.number"
+      def devTag  = "${version}-${currentBuild.number}"
       // Set the tag for the production image: version
 //*      prodTag = "${version}"
 //*   Need to define with def not like Linux syntax
