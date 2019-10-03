@@ -110,7 +110,6 @@ podTemplate(
                 openshift.withProject("9c94-tasks-dev") {
                   // OpenShift 4
                   openshift.set("image", "dc/tasks", "tasks=docker-registry.default.svc:5000/9c94-jenkins/tasks)
-                  def configmap = openshift.create('configmap', 'tasks-config', '--from-file=./configuration/application-users.properties', '--from-file=./configuration/application-roles.properties')
                   openshift.selector("dc", "tasks").rollout().latest();
                   def dc = openshift.selector("dc", "tasks").object()
                   def dc_version = dc.status.latestVersion
