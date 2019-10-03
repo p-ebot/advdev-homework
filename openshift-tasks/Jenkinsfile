@@ -109,7 +109,7 @@ podTemplate(
               openshift.withCluster() {
                 openshift.withProject("9c94-tasks-dev") {
                   // OpenShift 4
-                  openshift.set("image", "dc/tasks", "tasks=docker-registry.default.svc:5000/9c94-tasks-dev/tasks:${devTag}")
+                  openshift.set("image", "dc/tasks", "tasks=docker-registry.default.svc:5000/9c94-tasks-dev/tasks:${version}-${currentBuild.number}")
                   def configmap = openshift.create('configmap', 'tasks-config', '--from-file=./configuration/application-users.properties', '--from-file=./configuration/application-roles.properties')
                   openshift.selector("dc", "tasks").rollout().latest();
                   def dc = openshift.selector("dc", "tasks").object()
@@ -135,7 +135,7 @@ podTemplate(
               --dest-tls-verify=false \
               --src-creds openshift:\$(oc whoami -t) \
               --dest-creds admin:redhat \
-              docker://docker-registry.default.svc.cluster.local:5000/${devProject}/tasks:${devTag} \
+              docker://docker-registry.default.svc.cluster.local:5000/9c94-tasks-dev/tasks:${version}-${currentBuild.number} \
               docker://nexus-registry.gpte-hw-cicd.svc.cluster.local:5000/tasks:${devTag}"
 
               // OpenShift 3
