@@ -134,8 +134,8 @@ podTemplate(
               --dest-tls-verify=false \
               --src-creds openshift:\$(oc whoami -t) \
               --dest-creds admin:redhat \
-              docker://docker-registry.default.svc:5000/9c94-jenkins/tasks \
-              docker://nexus-registry.gpte-hw-cicd.svc.cluster.local:5000/tasks"
+              docker-registry.default.svc:5000/9c94-jenkins/tasks \
+              nexus-registry.gpte-hw-cicd.svc.cluster.local:5000/tasks"
 
               // OpenShift 3
               // sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${devProject}/tasks:${devTag} docker://nexus3-registry.${prefix}-nexus.svc.cluster.local:5000/tasks:${devTag}"
