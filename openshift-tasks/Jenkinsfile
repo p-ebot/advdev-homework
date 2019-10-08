@@ -14,7 +14,6 @@ podTemplate(
     )
   ]
 ) {
-//* add the URL as variable so you only have to define them once
   def nexusSvcRoute = "http://nexus3.gpte-hw-cicd.svc.cluster.local:8081"
   def nexusPublicRoute = "http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com"
 
@@ -24,6 +23,7 @@ podTemplate(
 
   def sonarQubeSvcRoute = "sonarqube.gpte-hw-cicd.svc.cluster.local:9000"
   def sonarQubePublicRoute = "http://sonarqube-gpte-hw-cicd.apps.na311.openshift.opentlc.com"
+
   node('skopeo-pod') {
     // Define Maven Command to point to the correct
     // settings for our Nexus installation
@@ -34,51 +34,52 @@ podTemplate(
       checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '6ff03b8d-8a9a-42d4-afbf-1bf1e10d5e9a', url: 'https://github.com/p-ebot/advdev-homework.git']]])
     }
 
+
     // Build the Tasks Service
     dir('openshift-tasks') {
-      // The following variables need to be defined at the top level
-      // and not inside the scope of a stage - otherwise they would not
-      // be accessible from other stages.
-      // Extract version from the pom.xml
       def version = getVersionFromPom("pom.xml")
 
-      // TBD Set the tag for the development image: version + build number
-//*   Tag is set wrong. Will will not evaluate the current build number
-//*      devTag  = "${version}-" + currentBuild.number
+      // Set the tag for the development image: version + build number
       def devTag  = "${version}-${currentBuild.number}"
       // Set the tag for the production image: version
-//*      prodTag = "${version}"
-//*   Need to define with def not like Linux syntax
       def prodTag = "${version}"
-      def devProject = "9c94-tasks-dev"
+      def devProject  = "9c94-tasks-dev"
       def prodProject = "9c94-tasks-prod"
 
       // Using Maven build the war file
-      // Do not run tests in this step
       stage('Build war') {
         echo "Building version ${devTag}"
-         sh "${mvnCmd} clean package -DskipTests=true"
+        // Execute Maven Build
+        sh "${mvnCmd} clean package -DskipTests=true"
       }
 
-      // TBD: The next two stages should run in parallel
+      // The next two stages should run in parallel
+      stage('Parallel Test and Analysis') {
+        parallel 'Unit Tests': {
+            // Using Maven run the unit tests
+            echo "Running Unit Tests"
 
-      // Using Maven run the unit tests
-      stage('Unit Tests') {
-        echo "Running Unit Tests"
-         sh "${mvnCmd} test"
-      }
+            // Execute Unit Tests
+            sh "${mvnCmd} test"
 
-      // Using Maven to call SonarQube for Code Analysis
-      stage('Code Analysis') {
-        echo "Running Code Analysis"
-           sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube-gpte-hw-cicd.apps.na311.openshift.opentlc.com/ -Dsonar.projectName=9c94-jenkins-tasks-pipeline -Dsonar.projectVersion=${devTag}"
-        // TBD: Execute Sonarqube Tests
+            // This next step is optional.
+            // It displays the results of tests in the Jenkins Task Overview
+            step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
+          }, 'Code Analysis': {
+            // Using Maven to call SonarQube for Code Analysis
+            echo "Running Code Analysis"
+
+            // Execute Sonarqube Tests
+            sh "${mvnCmd} sonar:sonar -Dsonar.host.url=${sonarQubePublicRoute} -Dsonar.projectName=${JOB_BASE_NAME} -Dsonar.projectVersion=${devTag}"
+          }
+        failFast: true
       }
 
       // Publish the built war file to Nexus
       stage('Publish to Nexus') {
         echo "Publish to Nexus"
-//*        sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com/repository/releases/"
+
+        // Publish to Nexus
         sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::${nexusSvcRoute}/repository/releases"
       }
 
@@ -86,73 +87,81 @@ podTemplate(
       stage('Build and Tag OpenShift Image') {
         echo "Building OpenShift container image tasks:${devTag}"
 
+        // Build Image, tag Image
         script {
-              openshift.withCluster() {
-                openshift.withProject("9c94-jenkins") {
-                  sh "curl -o 9c94-nexus.war http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com/org/jboss/quickstarts/eap/tasks/1.0-0/tasks-1.0-0.war"
-//*                  openshift.selector("bc", "tasks").startBuild("--from-file=http://nexus3-gpte-hw-cicd.apps.na311.openshift.opentlc.com/repository/releases/org/jboss/quickstarts/eap/tasks/1.0/tasks-1.0.war ", "--wait=true")
-                  openshift.selector("bc", "jenkins-agent-appdev").startBuild("--from-file=9c94-nexus.war ", "--wait=true")
-                  openshift.tag("jenkins-agent-appdev:latest", "jenkins-agent-appdev:${devTag}")
+          openshift.withCluster() {
+            openshift.withProject("${devProject}") {
+              openshift.selector("bc", "tasks").startBuild("--from-file=${nexusSvcRoute}/repository/releases/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war", "--wait=true")
+              openshift.tag("tasks:latest", "tasks:${devTag}")
+            }
+          }
         }
-      }
-    }
-  }
-}
-        // TBD: Build Image, tag Image
       }
 
       // Deploy the built image to the Development Environment.
       stage('Deploy to Dev') {
         echo "Deploying container image to Development Project"
+
+        // Deploy to development Project
+        // Set Image, Set VERSION
+        // Make sure the application is running and ready before proceeding
+        // Need to poll
         script {
-              // Update the Image on the Development Deployment Config
-              openshift.withCluster() {
-                openshift.withProject("9c94-tasks-dev") {
-                  // OpenShift 4
-                  openshift.set("image", "dc/tasks", "tasks=docker-registry.default.svc:5000/9c94-jenkins/tasks")
-                  openshift.selector("dc", "tasks").rollout().latest();
-                  def dc = openshift.selector("dc", "tasks").object()
-                  def dc_version = dc.status.latestVersion
-                  def rc = openshift.selector("rc", "tasks-${dc_version}").object()
-                  echo "Waiting for ReplicationController tasks-${dc_version} to be ready"
+          // Update the Image on the Development Deployment Config
+          openshift.withCluster() {
+            openshift.withProject("${devProject}") {
+              // OpenShift 4
+              // openshift.set("image", "dc/tasks", "tasks=image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${devTag}")
+
+              // For OpenShift 3 use this:
+              openshift.set("image", "dc/tasks", "tasks=docker-registry.default.svc:5000/${devProject}/tasks:${devTag}")
+
+              // Update the Config Map which contains the users for the Tasks application
+              // (just in case the properties files changed in the latest commit)
+              openshift.selector('configmap', 'tasks-config').delete()
+              def configmap = openshift.create('configmap', 'tasks-config', '--from-file=./configuration/application-users.properties', '--from-file=./configuration/application-roles.properties')
+
+              // Set environment variable version
+              sh "oc set env dc/tasks VERSION='${devTag} (tasks-dev)' -n ${devProject}"
+
+              // Deploy the development application.
+              openshift.selector("dc", "tasks").rollout().latest();
+
+              // Wait for application to be deployed
+              def dc = openshift.selector("dc", "tasks").object()
+              def dc_version = dc.status.latestVersion
+              def rc = openshift.selector("rc", "tasks-${dc_version}").object()
+
+              echo "Waiting for ReplicationController tasks-${dc_version} to be ready"
+              while (rc.spec.replicas != rc.status.readyReplicas) {
+                sleep 5
+                rc = openshift.selector("rc", "tasks-${dc_version}").object()
+              }
+              echo "ReplicationControllers for tasks-${dc_version} are ready"
+            }
+          }
         }
       }
-    }
-  }
-}
-        // TBD: Deploy to development Project
-        //      Set Image, Set VERSION
-        //      Make sure the application is running and ready before proceeding
-
 
       // Copy Image to Nexus container registry
       stage('Copy Image to Nexus container registry') {
         echo "Copy image to Nexus container registry"
         script {
-              // OpenShift
-              sh "skopeo copy --src-tls-verify=false \
-              --dest-tls-verify=false \
-              --src-creds openshift:\$(oc whoami -t) \
-              --dest-creds admin:redhat \
-              docker:docker-registry.default.svc:5000/9c94-jenkins/tasks \
-              docker:nexus-registry.gpte-hw-cicd.svc.cluster.local:5000/tasks"
+          sh "skopeo copy --src-tls-verify=false \
+                          --dest-tls-verify=false \
+                          --src-creds openshift:\$(oc whoami -t) \
+                          --dest-creds admin:redhat \
+                          docker://docker-registry.default.svc.cluster.local:5000/${devProject}/tasks:${devTag} \
+                          docker://nexus-registry.gpte-hw-cicd.svc.cluster.local:5000/tasks:${devTag}"
 
-              // OpenShift 3
-              // sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${devProject}/tasks:${devTag} docker://nexus3-registry.${prefix}-nexus.svc.cluster.local:5000/tasks:${devTag}"
-
-              // Tag the built image with the production tag.
-              openshift.withCluster() {
-                openshift.withProject("${prodProject}") {
-                  openshift.tag("9c94-tasks-dev/tasks:${devTag}", "9c94-tasks-dev/tasks:${prodTag}")
-                }
-              }
+          // Tag the built image with the production tag.
+          openshift.withCluster() {
+            openshift.withProject("${prodProject}") {
+              openshift.tag("${devProject}/tasks:${devTag}", "${devProject}/tasks:${prodTag}")
             }
           }
-
-        // TBD: Copy image to Nexus container registry
-
-        // TBD: Tag the built image with the production tag.
-
+        }
+      }
 
       // Blue/Green Deployment into Production
       // -------------------------------------
@@ -160,63 +169,56 @@ podTemplate(
       def activeApp = ""
 
       stage('Blue/Green Production Deployment') {
-        // TBD: Determine which application is active
-        //      Set Image, Set VERSION
-        //      Deploy into the other application
-        //      Make sure the application is running and ready before proceeding
-        // Blue/Green Deployment into Production
-        // -------------------------------------
-        // Do not activate the new version yet.
-        stage('Blue/Green Production Deployment') {
-          steps {
-            echo "Blue/Green Deployment"
-            script {
-              openshift.withCluster() {
-                openshift.withProject("${prodProject}") {
-                  activeApp = openshift.selector("route", "tasks").object().spec.to.name
-                  if (activeApp == "tasks-green") {
-                    destApp = "tasks-blue"
-                  }
-                  echo "Active Application:      " + activeApp
-                  echo "Destination Application: " + destApp
+        // Determine which application is active
+        // Set Image, Set VERSION
+        // Deploy into the other application
+        // Make sure the application is running and ready before proceeding
+        echo "Blue/Green Deployment"
+        script {
+          openshift.withCluster() {
+            openshift.withProject("${prodProject}") {
+              activeApp = openshift.selector("route", "tasks").object().spec.to.name
+              if (activeApp == "tasks-green") {
+                destApp = "tasks-blue"
+              }
+              echo "Active Application:      " + activeApp
+              echo "Destination Application: " + destApp
 
-                  // Update the Image on the Production Deployment Config
-                  def dc = openshift.selector("dc/${destApp}").object()
+              // Update the Image on the Production Deployment Config
+              def dc = openshift.selector("dc/${destApp}").object()
 
-                  // OpenShift 4
-                  // dc.spec.template.spec.containers[0].image="image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${prodTag}"
-                  // OpenShift 3
-                  dc.spec.template.spec.containers[0].image="docker-registry.default.svc:5000/${devProject}/tasks:${prodTag}"
+              // OpenShift 4
+              //  dc.spec.template.spec.containers[0].image="image-registry.openshift-image-registry.svc:5000/${devProject}/tasks:${prodTag}"
+              // OpenShift 3
+              dc.spec.template.spec.containers[0].image="docker-registry.default.svc:5000/${devProject}/tasks:${prodTag}"
 
-                  openshift.apply(dc)
+              openshift.apply(dc)
 
-                  // Update Config Map in change config files changed in the source
-                  openshift.selector("configmap", "${destApp}-config").delete()
-                  def configmap = openshift.create("configmap", "${destApp}-config", "--from-file=./configuration/application-users.properties", "--from-file=./configuration/application-roles.properties" )
+              // Update Config Map in change config files changed in the source
+              openshift.selector("configmap", "${destApp}-config").delete()
+              def configmap = openshift.create("configmap", "${destApp}-config", "--from-file=./configuration/application-users.properties", "--from-file=./configuration/application-roles.properties" )
 
-                  // Deploy the inactive application.
-                  openshift.selector("dc", "${destApp}").rollout().latest();
+              sh "oc set env dc/${destApp} VERSION='${prodTag} ${destApp}' -n ${prodProject}"
 
-                  // Wait for application to be deployed
-                  def dc_prod = openshift.selector("dc", "${destApp}").object()
-                  def dc_version = dc_prod.status.latestVersion
-                  def rc_prod = openshift.selector("rc", "${destApp}-${dc_version}").object()
-                  echo "Waiting for ${destApp} to be ready"
-                  while (rc_prod.spec.replicas != rc_prod.status.readyReplicas) {
-                    sleep 5
-                    rc_prod = openshift.selector("rc", "${destApp}-${dc_version}").object()
-                  }
-                }
+              // Deploy the inactive application.
+              openshift.selector("dc", "${destApp}").rollout().latest();
+
+              // Wait for application to be deployed
+              def dc_prod = openshift.selector("dc", "${destApp}").object()
+              def dc_version = dc_prod.status.latestVersion
+              def rc_prod = openshift.selector("rc", "${destApp}-${dc_version}").object()
+              echo "Waiting for ${destApp} to be ready"
+              while (rc_prod.spec.replicas != rc_prod.status.readyReplicas) {
+                sleep 5
+                rc_prod = openshift.selector("rc", "${destApp}-${dc_version}").object()
               }
             }
           }
         }
       }
 
-
       stage('Switch over to new Version') {
         echo "Switching Production application to ${destApp}."
-        // TBD: Execute switch
         script {
           openshift.withCluster() {
             openshift.withProject("${prodProject}") {
@@ -227,12 +229,14 @@ podTemplate(
           }
         }
       }
-
+    }
+  }
+}
 
 // Convenience Functions to read version from the pom.xml
 // Do not change anything below this line.
 // --------------------------------------------------------
 def getVersionFromPom(pom) {
-  def matcher = readFile(pom) =~ '<version>(.+)</version>'
-  matcher ? matcher[0][1] : null
+ def matcher = readFile(pom) =~ '<version>(.+)</version>'
+ matcher ? matcher[0][1] : null
 }
